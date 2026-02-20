@@ -397,7 +397,7 @@ export default function StudentAssignmentSubmitPage() {
           <div className="fixed inset-0 bg-black/50 z-20 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
         )}
 
-        <StudentSidebar isDark={isDark} isSidebarOpen={isSidebarOpen} currentPage="assignment-submit" />
+        <StudentSidebar isDark={isDark} isSidebarOpen={isSidebarOpen} currentPage="assignments" />
 
         <main className="lg:ml-64">
           <header className={`sticky top-0 z-20 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} border-b`}>
