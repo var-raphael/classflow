@@ -42,13 +42,14 @@ interface Student {
   lastActivity: string;
 }
 
+// FIX: profiles is an array returned by Supabase joins
 interface TeacherStudentData {
   added_at: string;
   profiles: {
     id: string;
     email: string;
     full_name: string | null;
-  };
+  }[];
 }
 
 export default function TeacherStudentManagement() {
@@ -105,7 +106,6 @@ export default function TeacherStudentManagement() {
 
       if (studentsError) throw studentsError;
 
-      // Fetch all assignment IDs for this teacher (all statuses)
       const { data: teacherAssignments } = await supabase
         .from('assignments')
         .select('id')
@@ -115,14 +115,17 @@ export default function TeacherStudentManagement() {
 
       const studentsWithStats = await Promise.all(
         (teacherStudents || []).map(async (ts: TeacherStudentData) => {
-          const studentId = ts.profiles.id;
+          // FIX: access profiles as array
+          const profile = ts.profiles[0];
+          if (!profile) return null;
 
-          // Early return if no active assignments
+          const studentId = profile.id;
+
           if (activeAssignmentIds.length === 0) {
             return {
               id: studentId,
-              name: ts.profiles.full_name || 'Unknown',
-              email: ts.profiles.email,
+              name: profile.full_name || 'Unknown',
+              email: profile.email,
               joinedDate: ts.added_at,
               totalAssignments: 0,
               submitted: 0,
@@ -133,21 +136,18 @@ export default function TeacherStudentManagement() {
             };
           }
 
-          // FIX: Count only active assignments assigned to this student
           const { count: totalAssignments } = await supabase
             .from('assignment_students')
             .select('*', { count: 'exact', head: true })
             .eq('student_id', studentId)
             .in('assignment_id', activeAssignmentIds);
 
-          // FIX: Count submissions only for active assignments
           const { count: submittedCount } = await supabase
             .from('submissions')
             .select('*', { count: 'exact', head: true })
             .eq('student_id', studentId)
             .in('assignment_id', activeAssignmentIds);
 
-          // Get average grade for active assignments only
           const { data: grades } = await supabase
             .from('submissions')
             .select('grade')
@@ -170,8 +170,8 @@ export default function TeacherStudentManagement() {
 
           return {
             id: studentId,
-            name: ts.profiles.full_name || 'Unknown',
-            email: ts.profiles.email,
+            name: profile.full_name || 'Unknown',
+            email: profile.email,
             joinedDate: ts.added_at,
             totalAssignments: totalAssignments || 0,
             submitted: submittedCount || 0,
@@ -183,7 +183,7 @@ export default function TeacherStudentManagement() {
         })
       );
 
-      setStudents(studentsWithStats);
+      setStudents(studentsWithStats.filter(Boolean) as Student[]);
     } catch (err: any) {
       console.error('Error fetching students:', err);
       setError(err.message);
@@ -271,7 +271,6 @@ export default function TeacherStudentManagement() {
     window.location.href = `mailto:${email}`;
   };
 
-  // FIX: Only calculate stats from students who actually have grades
   const gradedStudents = students.filter(s => s.averageGrade !== null);
   const stats = {
     totalStudents: students.length,
@@ -699,11 +698,11 @@ export default function TeacherStudentManagement() {
             </div>
           </div>
         )}
+
         {/* Remove Student Modal */}
         {showRemoveModal && studentToRemove && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
             <div className={`w-full max-w-md rounded-2xl p-6 ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
-              {/* Icon */}
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
                   <Trash2 className="w-8 h-8 text-red-500" />
@@ -717,7 +716,6 @@ export default function TeacherStudentManagement() {
                 You are about to remove <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{studentToRemove.name}</span> from your class.
               </p>
 
-              {/* Warnings */}
               <div className={`rounded-xl p-4 mb-6 space-y-3 border ${isDark ? 'bg-red-500/10 border-red-500/30' : 'bg-red-50 border-red-200'}`}>
                 <p className={`text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 ${isDark ? 'text-red-400' : 'text-red-600'}`}>
                   <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> This action will:
