@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -322,30 +324,39 @@ export default function TeacherGradingView() {
 
       const updatedStatus = grade ? 'graded' : selectedSubmission.status;
 
-      const updatedSubmissions = submissions.map(s =>
-        s.id === selectedSubmission.id
-          ? { ...s, grade: grade ? gradeNum : null, feedback: feedbackHtml, status: updatedStatus }
-          : s
+      setSubmissions(prev =>
+        prev.map(s =>
+          s.id === selectedSubmission.id
+            ? { ...s, grade: grade ? gradeNum : null, feedback: feedbackHtml, status: updatedStatus }
+            : s
+        )
       );
 
-      setSubmissions(updatedSubmissions);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
 
+      // Clear and move to next
       setGrade('');
       editor?.commands.setContent('<p>Write your feedback here...</p>');
-
-      const currentIndex = updatedSubmissions.findIndex(s => s.id === selectedSubmission.id);
-      const nextUngraded = updatedSubmissions.slice(currentIndex + 1).find(s => s.status === 'submitted');
-
+      
+      const currentIndex = submissions.findIndex(s => s.id === selectedSubmission.id);
+      const nextUngraded = submissions.slice(currentIndex + 1).find(s => s.status === 'submitted');
+      
       if (nextUngraded) {
         setSelectedSubmission(nextUngraded);
       } else {
-        const allGraded = updatedSubmissions
-          .filter(s => s.status === 'submitted' || s.status === 'graded')
-          .every(s => s.status === 'graded');
+        // Check if all submitted assignments are now graded
+        const allGraded = submissions.filter(s => s.status === 'submitted' || s.status === 'graded')
+          .every(s => s.status === 'graded' || s.id === selectedSubmission.id);
+        
         if (allGraded) {
-          setSelectedSubmission(null);
+          setSelectedSubmission(null); // Show congratulations screen
+        }
+      } else {
+        // No more ungraded submissions - check if ALL are graded
+        const allGraded = submissions.every(s => s.status === 'graded' || s.status === 'pending' || s.status === 'draft');
+        if (allGraded) {
+          setSelectedSubmission(null); // Trigger congratulations screen
         }
       }
     } catch (err: any) {
@@ -608,8 +619,9 @@ export default function TeacherGradingView() {
                   (() => {
                     const submittedAndGraded = submissions.filter(s => s.status === 'submitted' || s.status === 'graded');
                     const allGraded = submittedAndGraded.length > 0 && submittedAndGraded.every(s => s.status === 'graded');
-
+                    
                     return allGraded ? (
+                      // Congratulations screen
                       <div className={`m-6 rounded-2xl p-12 text-center ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
                         <div className="flex justify-center mb-6">
                           <div className="relative">
@@ -634,12 +646,14 @@ export default function TeacherGradingView() {
                         </button>
                       </div>
                     ) : (
+                      // Select a student screen
                       <div className={`m-6 rounded-2xl p-12 text-center ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
                         <User className={`w-16 h-16 mx-auto mb-4 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
                         <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Select a student</p>
                       </div>
                     );
                   })()
+                )
                 ) : (
                   <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-4 sm:space-y-6">
 
@@ -690,7 +704,9 @@ export default function TeacherGradingView() {
                                 <div key={file.id} className={`flex items-center justify-between p-3 rounded-xl ${isDark ? 'bg-slate-700' : 'bg-slate-50'}`}>
                                   <div className="flex items-center gap-3">
                                     <FileText className={`w-4 h-4 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
-                                    <p className={`text-xs font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{file.file_name}</p>
+                                    <div>
+                                      <p className={`text-xs font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{file.file_name}</p>
+                                    </div>
                                   </div>
                                   <div className="flex items-center gap-1">
                                     <a href={file.file_url} target="_blank" rel="noopener noreferrer" className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-slate-600' : 'hover:bg-slate-200'}`}>
