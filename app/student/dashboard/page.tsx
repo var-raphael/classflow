@@ -330,7 +330,7 @@ export default function StudentDashboard() {
                     {assignmentStatus.length > 0 ? (
                       <ResponsiveContainer width="100%" height={250}>
                         <PieChart>
-                          <Pie data={assignmentStatus} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`} outerRadius={70} dataKey="value">
+                          <Pie data={assignmentStatus} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`} outerRadius={70} dataKey="value">
                             {assignmentStatus.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.color} />
                             ))}
