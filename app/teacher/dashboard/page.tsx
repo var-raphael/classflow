@@ -512,7 +512,7 @@ export default function TeacherDashboard() {
                   {gradeDistribution.length > 0 ? (
                     <ResponsiveContainer width="100%" height={250}>
                       <PieChart>
-                        <Pie data={gradeDistribution} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name.split(' ')[0]}: ${(percent * 100).toFixed(0)}%`} outerRadius={70} dataKey="value">
+                        <Pie data={gradeDistribution} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${(name ?? '').split(' ')[0]}: ${((percent ?? 0) * 100).toFixed(0)}%`} outerRadius={70} dataKey="value">
                           {gradeDistribution.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
