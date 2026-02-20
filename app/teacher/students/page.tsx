@@ -114,7 +114,7 @@ export default function TeacherStudentManagement() {
       const activeAssignmentIds = teacherAssignments?.map(a => a.id) || [];
 
       const studentsWithStats = await Promise.all(
-        (teacherStudents || []).map(async (ts: TeacherStudentData) => {
+        (teacherStudents || []).map(async (ts: any) => {
           // FIX: access profiles as array
           const profile = ts.profiles[0];
           if (!profile) return null;
