@@ -339,24 +339,18 @@ export default function TeacherGradingView() {
       setGrade('');
       editor?.commands.setContent('<p>Write your feedback here...</p>');
       
-      const currentIndex = submissions.findIndex(s => s.id === selectedSubmission.id);
-      const nextUngraded = submissions.slice(currentIndex + 1).find(s => s.status === 'submitted');
+      const currentIndex = updatedSubmissions.findIndex(s => s.id === selectedSubmission.id);
+      const nextUngraded = updatedSubmissions.slice(currentIndex + 1).find(s => s.status === 'submitted');
       
       if (nextUngraded) {
         setSelectedSubmission(nextUngraded);
       } else {
         // Check if all submitted assignments are now graded
-        const allGraded = submissions.filter(s => s.status === 'submitted' || s.status === 'graded')
-          .every(s => s.status === 'graded' || s.id === selectedSubmission.id);
+        const allGraded = updatedSubmissions.filter(s => s.status === 'submitted' || s.status === 'graded')
+          .every(s => s.status === 'graded');
         
         if (allGraded) {
           setSelectedSubmission(null); // Show congratulations screen
-        }
-      } else {
-        // No more ungraded submissions - check if ALL are graded
-        const allGraded = submissions.every(s => s.status === 'graded' || s.status === 'pending' || s.status === 'draft');
-        if (allGraded) {
-          setSelectedSubmission(null); // Trigger congratulations screen
         }
       }
     } catch (err: any) {
