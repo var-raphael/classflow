@@ -1,36 +1,30 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { User, GraduationCap, BookOpen, Sun, Moon } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { BookOpen, Users, Award, ArrowRight, GraduationCap, BarChart3, MessageSquare } from 'lucide-react';
 
 const SYMBOLS = [
+  // Math
   'Σ', '∫', '√', 'π', 'Δ', '∞', '≠', '≤', '≥', '∂', 'λ', 'θ', 'α', 'β', 'γ', 'φ', 'ω', 'μ',
   'f(x)', 'dx', 'dy', 'x²', 'y²', 'e^x', 'log', 'sin', 'cos', 'tan',
+  // Numbers
   '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+  // Equations
   'ax+b', 'y=mx', 'E=mc²', 'a²+b²', 'n!', 'Σn', '∇f',
+  // Letters
   'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
   'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
 ];
 
-const COLORS_DARK = [
-  'rgba(129,140,248,0.65)',
-  'rgba(167,139,250,0.60)',
-  'rgba(52,211,153,0.55)',
-  'rgba(96,165,250,0.55)',
-  'rgba(249,168,212,0.50)',
-  'rgba(252,211,77,0.50)',
-  'rgba(255,255,255,0.35)',
-];
-
-const COLORS_LIGHT = [
-  'rgba(79,70,229,0.55)',
-  'rgba(109,40,217,0.50)',
-  'rgba(5,150,105,0.48)',
-  'rgba(37,99,235,0.52)',
-  'rgba(190,24,93,0.45)',
-  'rgba(180,83,9,0.48)',
-  'rgba(51,65,85,0.40)',
+const COLORS = [
+  'rgba(129,140,248,0.65)',  // indigo
+  'rgba(167,139,250,0.60)',  // violet
+  'rgba(52,211,153,0.55)',   // emerald
+  'rgba(96,165,250,0.55)',   // blue
+  'rgba(249,168,212,0.50)',  // pink
+  'rgba(252,211,77,0.50)',   // amber
+  'rgba(255,255,255,0.35)',  // white
 ];
 
 interface Particle {
@@ -48,46 +42,20 @@ interface Particle {
   wobbleOffset: number;
 }
 
-export default function AuthPage() {
-  const [userType, setUserType] = useState<'teacher' | 'student'>('student');
-  const [isDark, setIsDark] = useState(false);
-  const { signInWithGoogle } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-
+export default function HomePage() {
+  const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const animFrameRef = useRef<number>(0);
-  const isDarkRef = useRef(isDark);
-
-  useEffect(() => {
-    isDarkRef.current = isDark;
-  }, [isDark]);
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'light') {
-      setIsDark(false);
-    } else {
-      // Default to dark mode
-      setIsDark(true);
-      localStorage.setItem('theme', 'dark');
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = !isDark;
-    setIsDark(newTheme);
-    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
-  };
+  const timeRef = useRef<number>(0);
 
   const createParticle = useCallback((canvas: HTMLCanvasElement, fromTop = false): Particle => {
-    const colors = isDarkRef.current ? COLORS_DARK : COLORS_LIGHT;
     return {
       x: Math.random() * canvas.width,
       y: fromTop ? -30 : Math.random() * canvas.height,
       speed: 0.4 + Math.random() * 1.1,
       symbol: SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
-      color: colors[Math.floor(Math.random() * colors.length)],
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
       size: 16 + Math.floor(Math.random() * 24),
       opacity: 0.55 + Math.random() * 0.40,
       rotation: Math.random() * Math.PI * 2,
@@ -111,12 +79,13 @@ export default function AuthPage() {
     resize();
     window.addEventListener('resize', resize);
 
+    // Init particles
     const COUNT = Math.min(150, Math.floor((window.innerWidth * window.innerHeight) / 6000));
     particlesRef.current = Array.from({ length: COUNT }, () => createParticle(canvas));
 
     const draw = () => {
+      timeRef.current += 1;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const colors = isDarkRef.current ? COLORS_DARK : COLORS_LIGHT;
 
       particlesRef.current.forEach((p, i) => {
         p.y += p.speed;
@@ -137,10 +106,9 @@ export default function AuthPage() {
         ctx.fillText(p.symbol, 0, 0);
         ctx.restore();
 
+        // Reset when off screen
         if (p.y > canvas.height + 40) {
-          const np = createParticle(canvas, true);
-          np.color = colors[Math.floor(Math.random() * colors.length)];
-          particlesRef.current[i] = np;
+          particlesRef.current[i] = createParticle(canvas, true);
         }
       });
 
@@ -155,164 +123,282 @@ export default function AuthPage() {
     };
   }, [createParticle]);
 
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    try {
-      await signInWithGoogle(userType);
-    } catch (error) {
-      console.error('Sign in error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div className={`relative min-h-screen overflow-hidden transition-colors duration-300 ${
-      isDark
-        ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900'
-        : 'bg-gradient-to-br from-slate-200 via-indigo-100/60 to-slate-200'
-    }`}>
-      {/* Falling canvas */}
-      <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: 0 }} />
+    <div className="relative min-h-screen overflow-hidden" style={{ background: 'linear-gradient(135deg, #0a0a1a 0%, #0d1332 30%, #0a1628 60%, #071020 100%)' }}>
+      {/* Animated canvas background */}
+      <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: 0, width: '100vw', height: '100vh' }} />
 
-      {/* Glow orbs */}
-      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 1 }}>
+      {/* Radial glow effects */}
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
         <div style={{
-          position: 'absolute', top: '10%', left: '50%', transform: 'translateX(-50%)',
-          width: 500, height: 300, borderRadius: '50%',
-          background: isDark
-            ? 'radial-gradient(ellipse, rgba(99,102,241,0.15) 0%, transparent 70%)'
-            : 'radial-gradient(ellipse, rgba(99,102,241,0.10) 0%, transparent 70%)',
+          position: 'absolute', top: '15%', left: '50%', transform: 'translateX(-50%)',
+          width: '600px', height: '400px', borderRadius: '50%',
+          background: 'radial-gradient(ellipse, rgba(99,102,241,0.18) 0%, transparent 70%)',
           filter: 'blur(40px)',
         }} />
         <div style={{
-          position: 'absolute', bottom: '15%', right: '20%',
-          width: 350, height: 350, borderRadius: '50%',
-          background: isDark
-            ? 'radial-gradient(ellipse, rgba(16,185,129,0.10) 0%, transparent 70%)'
-            : 'radial-gradient(ellipse, rgba(16,185,129,0.08) 0%, transparent 70%)',
+          position: 'absolute', bottom: '20%', left: '20%',
+          width: '400px', height: '300px', borderRadius: '50%',
+          background: 'radial-gradient(ellipse, rgba(16,185,129,0.12) 0%, transparent 70%)',
           filter: 'blur(50px)',
+        }} />
+        <div style={{
+          position: 'absolute', top: '40%', right: '10%',
+          width: '350px', height: '350px', borderRadius: '50%',
+          background: 'radial-gradient(ellipse, rgba(139,92,246,0.12) 0%, transparent 70%)',
+          filter: 'blur(40px)',
         }} />
       </div>
 
-      {/* Theme Toggle */}
-      <button
-        onClick={toggleTheme}
-        className={`absolute top-6 right-6 z-10 p-2.5 rounded-xl transition-all ${
-          isDark
-            ? 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 border border-slate-700'
-            : 'bg-white/80 text-slate-600 hover:bg-white border border-slate-200 shadow-sm'
-        }`}
-        style={{ backdropFilter: 'blur(10px)' }}
-      >
-        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-      </button>
+      {/* Content */}
+      <div className="relative flex flex-col min-h-screen" style={{ zIndex: 2 }}>
 
-      {/* Main content */}
-      <div className="relative flex min-h-screen items-center justify-center px-4 py-12" style={{ zIndex: 2 }}>
-        <div className="w-full max-w-md">
-
-          {/* Logo & Header */}
-          <div className="text-center mb-8">
+        {/* Nav */}
+        <nav className="flex items-center justify-between px-6 md:px-12 py-6">
+          <div className="flex items-center gap-3">
             <div style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 64, height: 64, borderRadius: 18, marginBottom: 16,
+              width: 40, height: 40, borderRadius: 10,
               background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-              boxShadow: '0 0 30px rgba(99,102,241,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 20px rgba(99,102,241,0.4)',
             }}>
-              <BookOpen className="w-8 h-8 text-white" />
+              <BookOpen size={20} color="white" />
             </div>
-            <h1 className={`text-3xl font-bold mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            <span style={{ color: 'white', fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em' }}>
               ClassFlow
-            </h1>
-            <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              Sign in to get started
-            </p>
+            </span>
           </div>
-
-          {/* Auth Card */}
-          <div
-            className={`rounded-2xl p-8 ${isDark ? 'bg-slate-800/80 border border-slate-700/60' : 'bg-white/80 border border-slate-200 shadow-xl'}`}
-            style={{ backdropFilter: 'blur(20px)' }}
+          <button
+            onClick={() => router.push('/auth')}
+            style={{
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              color: 'white',
+              padding: '8px 20px',
+              borderRadius: 10,
+              fontWeight: 600,
+              fontSize: 14,
+              cursor: 'pointer',
+              backdropFilter: 'blur(10px)',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => {
+              (e.target as HTMLButtonElement).style.background = 'rgba(255,255,255,0.15)';
+              (e.target as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.3)';
+            }}
+            onMouseLeave={e => {
+              (e.target as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)';
+              (e.target as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)';
+            }}
           >
-            {/* Role selector */}
-            <p className={`text-xs font-semibold uppercase tracking-wider mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              I am a...
-            </p>
-            <div className={`flex gap-2 mb-6 p-1 rounded-xl ${isDark ? 'bg-slate-900/60' : 'bg-slate-100'}`}>
-              <button
-                onClick={() => setUserType('student')}
-                disabled={isLoading}
-                className={`flex-1 py-2.5 px-4 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-                  userType === 'student'
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                    : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'
-                } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <User className="w-4 h-4" />
-                Student
-              </button>
-              <button
-                onClick={() => setUserType('teacher')}
-                disabled={isLoading}
-                className={`flex-1 py-2.5 px-4 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-                  userType === 'teacher'
-                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30'
-                    : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'
-                } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <GraduationCap className="w-4 h-4" />
-                Teacher
-              </button>
-            </div>
+            Sign In
+          </button>
+        </nav>
 
-            {/* Role description */}
-            <div className={`rounded-xl px-4 py-3 mb-6 text-xs ${
-              isDark ? 'bg-slate-700/50 text-slate-400' : 'bg-slate-50 text-slate-500'
-            }`}>
-              {userType === 'student'
-                ? 'Access your assignments, submit work, and track your grades.'
-                : 'Create assignments, manage your class, and grade submissions.'}
-            </div>
-
-            {/* Google Button */}
-            <button
-              onClick={handleGoogleSignIn}
-              disabled={isLoading}
-              className={`w-full py-3.5 px-4 rounded-xl font-semibold flex items-center justify-center gap-3 transition-all ${
-                isDark
-                  ? 'bg-white text-slate-900 hover:bg-slate-100'
-                  : 'bg-white text-slate-800 border-2 border-slate-200 hover:border-slate-300 hover:shadow-md'
-              } ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
-              style={{ boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.08)' }}
-            >
-              {isLoading ? (
-                <>
-                  <svg className="animate-spin h-5 w-5 text-slate-600" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  <span>Connecting...</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  <span>Continue with Google</span>
-                </>
-              )}
-            </button>
-
-            {/* Footer note */}
-            <p className={`text-center text-xs mt-5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-              Your account is created automatically on first sign in
-            </p>
+        {/* Hero */}
+        <main className="flex-1 flex flex-col items-center justify-center px-6 text-center" style={{ paddingTop: '40px', paddingBottom: '80px' }}>
+          {/* Badge */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            background: 'rgba(99,102,241,0.15)',
+            border: '1px solid rgba(99,102,241,0.4)',
+            borderRadius: 100, padding: '6px 16px',
+            marginBottom: 32,
+            backdropFilter: 'blur(10px)',
+          }}>
+            <GraduationCap size={14} color="#a5b4fc" />
+            <span style={{ color: '#a5b4fc', fontSize: 13, fontWeight: 600, letterSpacing: '0.04em' }}>
+              BUILT FOR MODERN CLASSROOMS
+            </span>
           </div>
-        </div>
+
+          {/* Headline */}
+          <h1 style={{
+            fontSize: 'clamp(48px, 8vw, 88px)',
+            fontWeight: 800,
+            color: 'white',
+            lineHeight: 1.05,
+            letterSpacing: '-0.03em',
+            marginBottom: 24,
+            maxWidth: 900,
+          }}>
+            Where Learning{' '}
+            <span style={{
+              background: 'linear-gradient(135deg, #6366f1 0%, #a78bfa 50%, #34d399 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>
+              Flows
+            </span>
+          </h1>
+
+          {/* Subheadline */}
+          <p style={{
+            fontSize: 'clamp(16px, 2.5vw, 20px)',
+            color: 'rgba(255,255,255,0.6)',
+            maxWidth: 520,
+            lineHeight: 1.65,
+            marginBottom: 48,
+          }}>
+            Streamline assignment management, track student progress, and deliver feedback. All in one elegant platform.
+          </p>
+
+          {/* CTA */}
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button
+              onClick={() => router.push('/auth')}
+              style={{
+                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                color: 'white',
+                border: 'none',
+                padding: '16px 36px',
+                borderRadius: 14,
+                fontWeight: 700,
+                fontSize: 16,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                boxShadow: '0 0 40px rgba(99,102,241,0.5), 0 4px 20px rgba(0,0,0,0.4)',
+                transition: 'all 0.2s',
+                letterSpacing: '-0.01em',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 60px rgba(99,102,241,0.7), 0 8px 30px rgba(0,0,0,0.4)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 40px rgba(99,102,241,0.5), 0 4px 20px rgba(0,0,0,0.4)';
+              }}
+            >
+              Get Started Free
+              <ArrowRight size={18} />
+            </button>
+          </div>
+
+          {/* Social proof */}
+          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13, marginTop: 24, fontWeight: 500 }}>
+            No credit card required
+          </p>
+
+          {/* Stats row */}
+          <div style={{
+            display: 'flex', gap: 48, marginTop: 64, flexWrap: 'wrap', justifyContent: 'center',
+          }}>
+            {[
+              { val: '100%', label: 'Free to Use' },
+              { val: 'Real-time', label: 'Grade Tracking' },
+              { val: 'Instant', label: 'Feedback' },
+            ].map(({ val, label }) => (
+              <div key={label} style={{ textAlign: 'center' }}>
+                <div style={{ color: 'white', fontWeight: 800, fontSize: 28, letterSpacing: '-0.03em' }}>{val}</div>
+                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, fontWeight: 500, marginTop: 4 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </main>
+
+        {/* Features */}
+        <section style={{ padding: '0 24px 100px', maxWidth: 1100, margin: '0 auto', width: '100%' }}>
+          {/* Divider */}
+          <div style={{
+            height: 1,
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)',
+            marginBottom: 64,
+          }} />
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: 20,
+          }}>
+            {[
+              {
+                icon: Users,
+                color: '#6366f1',
+                glow: 'rgba(99,102,241,0.3)',
+                title: 'For Teachers',
+                desc: 'Create rich assignments with file attachments, manage your entire class roster, and grade submissions with detailed feedback.',
+              },
+              {
+                icon: BookOpen,
+                color: '#10b981',
+                glow: 'rgba(16,185,129,0.3)',
+                title: 'For Students',
+                desc: 'View all your assignments in one place, submit work with file uploads, and track your grades and progress over time.',
+              },
+              {
+                icon: BarChart3,
+                color: '#8b5cf6',
+                glow: 'rgba(139,92,246,0.3)',
+                title: 'Analytics & Insights',
+                desc: 'Visual grade trends, class rankings, and performance dashboards give everyone a clear picture of progress.',
+              },
+              {
+                icon: MessageSquare,
+                color: '#f59e0b',
+                glow: 'rgba(245,158,11,0.3)',
+                title: 'Live Collaboration',
+                desc: 'Comment threads on every assignment enable real-time discussion and feedback between teachers and students.',
+              },
+            ].map(({ icon: Icon, color, glow, title, desc }) => (
+              <div
+                key={title}
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 20,
+                  padding: '32px 28px',
+                  backdropFilter: 'blur(20px)',
+                  transition: 'all 0.3s',
+                  cursor: 'default',
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.07)';
+                  (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.15)';
+                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)';
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.04)';
+                  (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.08)';
+                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
+                }}
+              >
+                <div style={{
+                  width: 48, height: 48, borderRadius: 14,
+                  background: `${color}22`,
+                  border: `1px solid ${color}44`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: 20,
+                  boxShadow: `0 0 20px ${glow}`,
+                }}>
+                  <Icon size={22} color={color} />
+                </div>
+                <h3 style={{ color: 'white', fontWeight: 700, fontSize: 17, marginBottom: 10, letterSpacing: '-0.02em' }}>
+                  {title}
+                </h3>
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, lineHeight: 1.7 }}>
+                  {desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer style={{
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          padding: '24px 48px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13, fontWeight: 500 }}>
+            © 2026 ClassFlow. Built for educators everywhere.
+          </p>
+        </footer>
       </div>
     </div>
   );
