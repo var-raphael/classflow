@@ -22,7 +22,6 @@ export function useAuth() {
   const router = useRouter();
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -33,7 +32,6 @@ export function useAuth() {
       }
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -60,17 +58,14 @@ export function useAuth() {
         .single();
 
       if (error) {
-        // If profile doesn't exist yet and we haven't retried too many times
         if (error.code === 'PGRST116' && retryCount < 3) {
           console.log(`Profile not found, retrying in ${(retryCount + 1) * 500}ms...`);
-          // Wait and retry (profile might be getting created by callback)
           setTimeout(() => {
             fetchProfile(userId, retryCount + 1);
           }, (retryCount + 1) * 500);
           return;
         }
         
-        // If it's a different error or we've retried too many times
         if (error.code === 'PGRST116') {
           console.log('Profile does not exist yet - will be created by callback');
         } else {
@@ -91,7 +86,6 @@ export function useAuth() {
 
   const signInWithGoogle = async (role: 'teacher' | 'student') => {
     try {
-      // IMPORTANT: Store role in localStorage BEFORE OAuth redirect
       localStorage.setItem('pending_user_role', role);
       
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -106,7 +100,6 @@ export function useAuth() {
       });
 
       if (error) {
-        // Clean up on error
         localStorage.removeItem('pending_user_role');
         throw error;
       }
@@ -132,7 +125,8 @@ export function useAuth() {
   };
 
   const updateProfile = async (updates: Partial<Profile>) => {
-    if (!user) return { error: 'No user logged in' };
+    // FIX: always return both data and error to match AuthContextType
+    if (!user) return { data: null, error: 'No user logged in' };
 
     try {
       const { data, error } = await supabase
