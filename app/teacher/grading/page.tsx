@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -57,7 +57,7 @@ interface Assignment {
   graded: number;
 }
 
-export default function TeacherGradingView() {
+function TeacherGradingView() {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -825,5 +825,13 @@ export default function TeacherGradingView() {
         `}</style>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function TeacherGradingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-900"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div></div>}>
+      <TeacherGradingView />
+    </Suspense>
   );
 }
