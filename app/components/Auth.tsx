@@ -24,13 +24,13 @@ const COLORS_DARK = [
 ];
 
 const COLORS_LIGHT = [
-  'rgba(79,70,229,0.55)',
-  'rgba(109,40,217,0.50)',
-  'rgba(5,150,105,0.48)',
-  'rgba(37,99,235,0.52)',
-  'rgba(190,24,93,0.45)',
-  'rgba(180,83,9,0.48)',
-  'rgba(51,65,85,0.40)',
+  'rgba(99,102,241,0.30)',
+  'rgba(139,92,246,0.28)',
+  'rgba(16,185,129,0.25)',
+  'rgba(59,130,246,0.28)',
+  'rgba(236,72,153,0.22)',
+  'rgba(245,158,11,0.25)',
+  'rgba(100,116,139,0.20)',
 ];
 
 interface Particle {
@@ -65,13 +65,7 @@ export default function AuthPage() {
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'light') {
-      setIsDark(false);
-    } else {
-      // Default to dark mode
-      setIsDark(true);
-      localStorage.setItem('theme', 'dark');
-    }
+    if (savedTheme === 'dark') setIsDark(true);
   }, []);
 
   const toggleTheme = () => {
@@ -170,7 +164,7 @@ export default function AuthPage() {
     <div className={`relative min-h-screen overflow-hidden transition-colors duration-300 ${
       isDark
         ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900'
-        : 'bg-gradient-to-br from-slate-200 via-indigo-100/60 to-slate-200'
+        : 'bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-100'
     }`}>
       {/* Falling canvas */}
       <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: 0 }} />
