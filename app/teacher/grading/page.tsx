@@ -324,13 +324,13 @@ export default function TeacherGradingView() {
 
       const updatedStatus = grade ? 'graded' : selectedSubmission.status;
 
-      setSubmissions(prev =>
-        prev.map(s =>
-          s.id === selectedSubmission.id
-            ? { ...s, grade: grade ? gradeNum : null, feedback: feedbackHtml, status: updatedStatus }
-            : s
-        )
+      const updatedSubmissions = submissions.map(s =>
+        s.id === selectedSubmission.id
+          ? { ...s, grade: grade ? gradeNum : null, feedback: feedbackHtml, status: updatedStatus }
+          : s
       );
+
+      setSubmissions(updatedSubmissions);
 
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -350,7 +350,7 @@ export default function TeacherGradingView() {
           .every(s => s.status === 'graded');
         
         if (allGraded) {
-          setSelectedSubmission(null); // Show congratulations screen
+          setSelectedSubmission(null);
         }
       }
     } catch (err: any) {
